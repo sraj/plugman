@@ -116,18 +116,27 @@ exports.handlePlugin = function (action, project_dir, plugin_dir, plugin_et, var
     // move native files (source/header/resource)
     sourceFiles && sourceFiles.forEach(function (sourceFile) {
         var src = sourceFile.attrib['src'],
+            isFramework = sourceFile.attrib['framework'],
             srcFile = path.resolve(plugin_dir, 'src/ios', src),
             targetDir = path.resolve(pluginsDir, getRelativeDir(sourceFile)),
             destFile = path.resolve(targetDir, path.basename(src));
          
         if (action == 'install') {
-            xcodeproj.addSourceFile('Plugins/' + path.relative(pluginsDir, destFile));
             shell.mkdir('-p', targetDir);
             checkLastCommand();
             shell.cp(srcFile, destFile);
             checkLastCommand();
+            if(isFramework && isFramework.toLowerCase() == 'true') {
+                xcodeproj.addFramework(destFile, { weak: true });
+            } else {
+                xcodeproj.addSourceFile('Plugins/' + path.relative(pluginsDir, destFile));
+            }
         } else {
-            xcodeproj.removeSourceFile('Plugins/' + path.basename(src));   
+            if(isFramework && isFramework.toLowerCase() == 'true') {
+                xcodeproj.removeFramework('Plugins/' + path.basename(src));
+            } else {
+                xcodeproj.removeSourceFile('Plugins/' + path.basename(src));   
+            }
             if(fs.existsSync(destFile))
                 fs.unlinkSync(destFile);
             shell.rm('-rf', targetDir);    
